@@ -24,7 +24,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: skia
-          key: skia-windows-m124
+          key: skia-windows-m124-v2
 
       - name: Download Skia
         if: steps.skia-cache.outputs.cache-hit != 'true'
@@ -36,26 +36,28 @@ jobs:
         shell: bash
         run: |
           DOWNLOAD_URL=$(curl -sL https://api.github.com/repos/aseprite/aseprite/releases/latest | jq -r '.assets[0].browser_download_url')
+          echo "Downloading: $DOWNLOAD_URL"
           curl -L -o aseprite-source.zip "$DOWNLOAD_URL"
-          unzip aseprite-source.zip -d aseprite_src
-          # The zip extracts to a subdirectory, find it
-          ASEPRITE_DIR=$(ls -d aseprite_src/*/ 2>/dev/null | head -1)
-          if [ -z "$ASEPRITE_DIR" ]; then
-            ASEPRITE_DIR="aseprite_src"
-          fi
+          mkdir -p aseprite_src
+          unzip -q aseprite-source.zip -d aseprite_src
+          # Find the CMakeLists.txt file
+          ASEPRITE_DIR=$(find aseprite_src -name CMakeLists.txt -maxdepth 3 | head -1 | xargs dirname)
+          echo "Found Aseprite source at: $ASEPRITE_DIR"
           echo "ASEPRITE_DIR=$ASEPRITE_DIR" >> $GITHUB_ENV
 
       - name: Run CMake
         shell: pwsh
         run: |
           $skiaDir = (Resolve-Path skia).Path
+          Write-Host "Skia dir: $skiaDir"
+          Write-Host "Aseprite dir: $env:ASEPRITE_DIR"
           cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo `
                 -DLAF_BACKEND=skia `
                 -DSKIA_DIR="$skiaDir" `
                 -DSKIA_LIBRARY_DIR="$skiaDir\out\Release-x64" `
                 -DSKIA_LIBRARY="$skiaDir\out\Release-x64\skia.lib" `
                 -G Ninja `
-                -S $env:ASEPRITE_DIR `
+                -S "$env:ASEPRITE_DIR" `
                 -B build
 
       - name: Build
