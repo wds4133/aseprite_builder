@@ -121,13 +121,11 @@ jobs:
           curl -o Aseprite-source.zip -L ${{ needs.check-version.outputs.download_url }}
           unzip Aseprite-source.zip -d aseprite
           mkdir -p aseprite/build
-      - name: (Windows) Set architecture for the produced binary
+      - name: (Windows) Setup MSVC environment
         if: matrix.os == 'windows-latest'
-        shell: cmd
-        run: call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=x64
-      - name: (Windows) Setting Visual Studio build environment variables and paths
-        if: matrix.os == 'windows-latest'
-        uses: seanmiddleditch/gha-setup-vsdevenv@v4
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
       - name: (Windows) Run CMake
         if: matrix.os == 'windows-latest'
         working-directory: aseprite/build
